@@ -500,7 +500,8 @@ protected:
   std::shared_ptr<CDVDDemux> m_pSubtitleDemuxer;
   std::unordered_map<int64_t, std::shared_ptr<CDVDDemux>> m_subtitleDemuxerMap;
   CDVDDemuxCC* m_pCCDemuxer;
-
+  DemuxPacket* m_postPonedPacket = nullptr;
+  
   CRenderManager m_renderManager;
 
   struct SDVDInfo
