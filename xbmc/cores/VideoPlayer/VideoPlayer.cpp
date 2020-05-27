@@ -1020,7 +1020,12 @@ bool CVideoPlayer::ReadPacket(DemuxPacket*& packet, CDemuxStream*& stream)
   }
 
   // read a data frame from stream.
-  if (m_pDemuxer)
+  if (m_postPonedPacket)
+  {
+    packet = m_postPonedPacket;
+    m_postPonedPacket = nullptr;
+  }
+  else if (m_pDemuxer)
     packet = m_pDemuxer->Read();
 
   if (packet)
@@ -1028,6 +1033,19 @@ bool CVideoPlayer::ReadPacket(DemuxPacket*& packet, CDemuxStream*& stream)
     // stream changed, update and open defaults
     if (packet->iStreamId == DMX_SPECIALID_STREAMCHANGE)
     {
+      if (m_CurrentVideo.id >= 0 && m_CurrentVideo.inited && m_CurrentAudio.id >= 0 &&
+          m_CurrentAudio.inited &&
+          (m_CurrentVideo.syncState == IDVDStreamPlayer::SYNC_STARTING ||
+           m_CurrentAudio.syncState == IDVDStreamPlayer::SYNC_STARTING))
+      {
+        CLog::Log(LOGDEBUG, "%s - Postponing DMX_SPECIALID_STREAMCHANGE until players are started",
+                  __FUNCTION__);
+        m_postPonedPacket = packet;
+        packet = nullptr;
+        CThread::Sleep(100);
+        return true;
+      }
+      
       m_SelectionStreams.Clear(STREAM_NONE, STREAM_SOURCE_DEMUX);
       m_SelectionStreams.Update(m_pInputStream, m_pDemuxer);
       m_pDemuxer->GetPrograms(m_programs);
